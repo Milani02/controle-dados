@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Mail, Lock } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react'; // Removi o ShieldCheck daqui
 
-// IMPORTANTE: Altere o nome abaixo para o nome real do seu arquivo de vídeo
+// Importação do vídeo
 import videoBackground from '../assets/ciosp2026.mp4'; 
+// Importação da logo (lembre-se de renomear o arquivo na pasta assets para evitar erros)
+import logoBiodinamica from '../assets/logo-biodinamica.png'; 
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -50,17 +52,14 @@ export default function Login() {
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="relative z-20 glass-card p-10 rounded-3xl w-full max-w-md neon-glow border-t border-emerald-500/40"
       >
+        
+        {/* NOVO HEADER COM A LOGO DA BIODINÂMICA */}
         <div className="flex flex-col items-center mb-10">
-          <div className="bg-emerald-500/20 p-4 rounded-2xl mb-4 border border-emerald-500/30">
-            <ShieldCheck className="w-10 h-10 text-emerald-500 neon-text" />
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter italic neon-text uppercase">
-            CIOSP <span className="text-emerald-500">2026</span>
-          </h1>
-          <div className="h-1 w-20 bg-emerald-500 mt-2 rounded-full shadow-[0_0_15px_#10b981]" />
-          <p className="text-emerald-400/50 text-[10px] uppercase tracking-[0.3em] mt-4 font-bold">
-            Protocolo de Segurança Ativo
-          </p>
+          <img 
+            src={logoBiodinamica} 
+            alt="Logo Biodinâmica" 
+            className="w-48 h-auto object-contain drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
+          />
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -95,7 +94,7 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-black py-4 rounded-xl transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] uppercase tracking-widest text-sm"
           >
-            {loading ? 'AUTENTICANDO...' : 'ENTRAR NO TERMINAL'}
+            {loading ? 'AUTENTICANDO...' : 'ENTRAR NO PAINEL'}
           </motion.button>
         </form>
 

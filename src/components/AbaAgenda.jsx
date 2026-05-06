@@ -11,11 +11,9 @@ export default function AbaAgenda() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingForm, setLoadingForm] = useState(false);
   
-  // Estados para Edição
   const [isEditing, setIsEditing] = useState(false);
   const [idEmEdicao, setIdEmEdicao] = useState(null);
   
-  // Controle do Modal Customizado de Exclusão
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
   const [novoRegistro, setNovoRegistro] = useState({
@@ -36,7 +34,6 @@ export default function AbaAgenda() {
     if (!error && data) setRegistros(data);
   };
 
-  // Função para abrir o modo edição
   const abrirEdicao = (registro) => {
     setIsEditing(true);
     setIdEmEdicao(registro.id);
@@ -82,7 +79,6 @@ export default function AbaAgenda() {
     const { data: userData } = await supabase.auth.getUser();
 
     if (isEditing) {
-      // Lógica de Atualização
       const { error } = await supabase
         .from('programacao_ciosp')
         .update(novoRegistro)
@@ -95,7 +91,6 @@ export default function AbaAgenda() {
         setIsModalOpen(false);
       }
     } else {
-      // Lógica de Inserção original
       const { data, error } = await supabase
         .from('programacao_ciosp')
         .insert([{ ...novoRegistro, user_id: userData.user.id }])
@@ -109,7 +104,6 @@ export default function AbaAgenda() {
       }
     }
     
-    // Reset de estados
     if (loadingForm === false) {
       setIsEditing(false);
       setIdEmEdicao(null);
@@ -120,9 +114,9 @@ export default function AbaAgenda() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'Aprovado': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Não autorizado': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'Aprovado': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30';
+      case 'Não autorizado': return 'bg-red-500/10 text-red-400 border-red-500/30';
+      default: return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30';
     }
   };
 
@@ -142,89 +136,109 @@ export default function AbaAgenda() {
   const diasDisponiveis = [...new Set(registros.map(r => r.data))].sort();
 
   return (
-    <div className="p-8 relative">
+    <div className="p-10 min-h-screen text-gray-300">
       <div className="max-w-7xl mx-auto">
         
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-end mb-10 border-b border-emerald-500/10 pb-8">
           <div>
-            <h2 className="text-3xl font-bold text-gray-800">Grade de Programação</h2>
-            <p className="text-gray-500 mt-1">Gestão de Palestras e Hands-On</p>
+            <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase">
+              Grade <span className="text-emerald-500 font-light">CIOSP</span>
+            </h2>
+            <p className="text-emerald-500/40 text-xs uppercase tracking-[0.3em] mt-1">Terminal de Gerenciamento de Cronograma</p>
           </div>
-          <button onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '' }); setIsModalOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition shadow-sm font-medium">
-            + Agendar Professor
+          <button 
+            onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '' }); setIsModalOpen(true); }} 
+            className="bg-emerald-600 hover:bg-emerald-500 text-black px-6 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.2)] font-black uppercase text-xs tracking-widest"
+          >
+            + Novo Agendamento
           </button>
         </div>
 
-        <div className="flex gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
-            <input type="text" placeholder="Buscar por professor ou tema..." className="pl-10 w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <div className="flex gap-4 mb-8 bg-[#0a0a0a] p-4 rounded-2xl border border-white/5">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-3 text-emerald-500/30 group-focus-within:text-emerald-500 transition-colors w-5 h-5" />
+            <input 
+              type="text" 
+              placeholder="FILTRAR POR PROFESSOR OU TEMA..." 
+              className="pl-12 w-full bg-black/40 border border-white/5 p-2.5 rounded-xl text-white outline-none focus:border-emerald-500/50 transition-all font-mono text-xs uppercase"
+              value={busca} 
+              onChange={(e) => setBusca(e.target.value)} 
+            />
           </div>
-          <div className="flex items-center gap-2">
-            <Calendar className="text-gray-400 w-5 h-5" />
-            <select className="p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none bg-white min-w-[150px]" value={filtroData} onChange={(e) => setFiltroData(e.target.value)}>
-              <option value="Todas">Todos os Dias</option>
+          <div className="flex items-center gap-3">
+            <Calendar className="text-emerald-500/50 w-5 h-5" />
+            <select 
+              className="p-2.5 bg-black/40 border border-white/5 rounded-xl text-white focus:border-emerald-500/50 outline-none min-w-[150px] font-mono text-xs uppercase cursor-pointer" 
+              value={filtroData} 
+              onChange={(e) => setFiltroData(e.target.value)}
+            >
+              <option value="Todas" className="bg-[#111]">Todos os Dias</option>
               {diasDisponiveis.map(dia => (
-                <option key={dia} value={dia}>{formatarDataBr(dia)}</option>
+                <option key={dia} value={dia} className="bg-[#111]">{formatarDataBr(dia)}</option>
               ))}
             </select>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-[#0a0a0a] rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-200 text-sm text-gray-600 uppercase tracking-wider">
-                  <th className="p-4 font-semibold w-1/4">Professor</th>
-                  <th className="p-4 font-semibold w-1/3">Tema</th>
-                  <th className="p-4 font-semibold">Data/Hora</th>
-                  <th className="p-4 font-semibold">Tipo</th>
-                  <th className="p-4 font-semibold">Status</th>
-                  <th className="p-4 font-semibold text-right">Ações</th>
+                <tr className="bg-white/5 border-b border-white/5 text-[10px] text-emerald-500 uppercase tracking-[0.2em] font-black">
+                  <th className="p-5 w-1/4">Professor</th>
+                  <th className="p-5 w-1/3">Tema</th>
+                  <th className="p-5">Data/Hora</th>
+                  <th className="p-5">Tipo</th>
+                  <th className="p-5">Status</th>
+                  <th className="p-5 text-right">Comandos</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-sm font-mono uppercase tracking-tighter">
                 {registrosFiltrados.length > 0 ? (
                   registrosFiltrados.map((registro) => (
-                    <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={registro.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="p-4 font-medium text-gray-800">{registro.professor}</td>
-                      <td className="p-4 text-gray-600 text-sm">{registro.tema}</td>
-                      <td className="p-4 text-gray-600 font-medium">
-                        {formatarDataBr(registro.data)} <span className="text-gray-400 ml-1">{registro.horario.substring(0,5)}</span>
+                    <motion.tr 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      key={registro.id} 
+                      className="bg-[#3c3c3c] border-b border-[#222] hover:bg-[#222] transition-colors group"
+                    >
+                      <td className="p-5 font-bold text-white">{registro.professor}</td>
+                      <td className="p-5 text-white transition-colors text-xs">{registro.tema}</td>
+                      <td className="p-5 text-white">
+                        {formatarDataBr(registro.data)} <span className="text-white ml-1">{registro.horario.substring(0,5)}</span>
                       </td>
-                      <td className="p-4">
-                        <span className={`px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-semibold border border-gray-200`}>
+                      <td className="p-5">
+                        <span className="px-3 py-1 bg-white/5 text-white rounded-lg text-[9px] font-black border border-white/10">
                           {registro.tipo_evento}
                         </span>
                       </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(registro.status)}`}>
-                          {registro.status || 'Pendente'}
+                      <td className="p-5">
+                        <span className={`px-3 py-1 rounded-lg text-[9px] font-black border ${getStatusColor(registro.status)}`}>
+                          {registro.status || 'PENDENTE'}
                         </span>
                       </td>
-                      <td className="p-4 text-right flex justify-end gap-2">
-                        <button onClick={() => abrirEdicao(registro)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-full transition" title="Editar">
-                          <Pencil className="w-5 h-5" />
+                      <td className="p-5 text-right flex justify-end gap-2">
+                        <button onClick={() => abrirEdicao(registro)} className="text-gray-400 hover:text-white transition-colors p-2" title="Editar">
+                          <Pencil className="w-4 h-4" />
                         </button>
                         {registro.status !== 'Aprovado' && (
-                          <button onClick={() => atualizarStatus(registro.id, 'Aprovado')} className="text-green-600 hover:bg-green-50 p-2 rounded-full transition" title="Aprovar">
-                            <CheckCircle className="w-5 h-5" />
+                          <button onClick={() => atualizarStatus(registro.id, 'Aprovado')} className="text-gray-400 hover:text-emerald-500 transition-colors p-2" title="Aprovar">
+                            <CheckCircle className="w-4 h-4" />
                           </button>
                         )}
                         {registro.status !== 'Não autorizado' && (
-                          <button onClick={() => atualizarStatus(registro.id, 'Não autorizado')} className="text-red-600 hover:bg-red-50 p-2 rounded-full transition" title="Não Autorizar">
-                            <XCircle className="w-5 h-5" />
+                          <button onClick={() => atualizarStatus(registro.id, 'Não autorizado')} className="text-gray-400 hover:text-yellow-500 transition-colors p-2" title="Não Autorizar">
+                            <XCircle className="w-4 h-4" />
                           </button>
                         )}
-                        <button onClick={() => abrirModalExclusao(registro.id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-full transition" title="Excluir">
-                          <Trash2 className="w-5 h-5" />
+                        <button onClick={() => abrirModalExclusao(registro.id)} className="text-gray-400 hover:text-red-500 transition-colors p-2" title="Excluir">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </motion.tr>
                   ))
                 ) : (
-                  <tr><td colSpan="6" className="p-8 text-center text-gray-500">Nenhum agendamento encontrado para este filtro.</td></tr>
+                  <tr><td colSpan="6" className="p-8 text-center text-gray-600 font-mono text-xs uppercase">Nenhum registro localizado no banco de dados.</td></tr>
                 )}
               </tbody>
             </table>
@@ -235,42 +249,42 @@ export default function AbaAgenda() {
       {/* MODAL DE CADASTRO / EDIÇÃO */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden">
-              <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
-                <h2 className="text-xl font-bold text-gray-800">{isEditing ? 'Editar Apresentação' : 'Agendar Apresentação'}</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition"><X className="w-6 h-6" /></button>
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-[#0a0a0a] border border-emerald-500/20 rounded-2xl shadow-[0_0_40px_rgba(0,0,0,0.8)] w-full max-w-lg overflow-hidden">
+              <div className="flex justify-between items-center p-6 border-b border-white/5 bg-white/5">
+                <h2 className="text-lg font-black text-white uppercase tracking-widest">{isEditing ? 'Atualizar Registro' : 'Novo Registro'}</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-white transition"><X className="w-5 h-5" /></button>
               </div>
-              <form onSubmit={handleSalvarRegistro} className="p-6 space-y-4">
+              <form onSubmit={handleSalvarRegistro} className="p-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Professor / Profissional</label>
-                  <input type="text" required placeholder="Ex: Leandro Luka" className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={novoRegistro.professor} onChange={(e) => setNovoRegistro({...novoRegistro, professor: e.target.value})} />
+                  <label className="block text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Professor / Profissional</label>
+                  <input type="text" required placeholder="NOME DO PROFISSIONAL" className="w-full p-3 bg-black/50 border border-white/10 rounded-xl text-white focus:border-emerald-500 outline-none transition font-mono text-xs uppercase" value={novoRegistro.professor} onChange={(e) => setNovoRegistro({...novoRegistro, professor: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tema da Palestra / Hands-On</label>
-                  <input type="text" required placeholder="Ex: Técnica indireta simplificada para lentes..." className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={novoRegistro.tema} onChange={(e) => setNovoRegistro({...novoRegistro, tema: e.target.value})} />
+                  <label className="block text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Tema da Sessão</label>
+                  <input type="text" required placeholder="ASSUNTO ABORDADO" className="w-full p-3 bg-black/50 border border-white/10 rounded-xl text-white focus:border-emerald-500 outline-none transition font-mono text-xs uppercase" value={novoRegistro.tema} onChange={(e) => setNovoRegistro({...novoRegistro, tema: e.target.value})} />
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                    <input type="date" required className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={novoRegistro.data} onChange={(e) => setNovoRegistro({...novoRegistro, data: e.target.value})} />
+                    <label className="block text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Data</label>
+                    <input type="date" required className="w-full p-3 bg-black/50 border border-white/10 rounded-xl text-white focus:border-emerald-500 outline-none transition font-mono text-xs uppercase" value={novoRegistro.data} onChange={(e) => setNovoRegistro({...novoRegistro, data: e.target.value})} />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Horário</label>
-                    <input type="time" required className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={novoRegistro.horario} onChange={(e) => setNovoRegistro({...novoRegistro, horario: e.target.value})} />
+                    <label className="block text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Horário</label>
+                    <input type="time" required className="w-full p-3 bg-black/50 border border-white/10 rounded-xl text-white focus:border-emerald-500 outline-none transition font-mono text-xs uppercase" value={novoRegistro.horario} onChange={(e) => setNovoRegistro({...novoRegistro, horario: e.target.value})} />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Evento</label>
-                  <select required className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 outline-none" value={novoRegistro.tipo_evento} onChange={(e) => setNovoRegistro({...novoRegistro, tipo_evento: e.target.value})}>
-                    <option value="Palestra">Palestra</option>
-                    <option value="Hands-On">Hands-On</option>
-                    <option value="Demonstração">Demonstração</option>
+                  <label className="block text-[10px] font-bold text-emerald-500 uppercase tracking-widest mb-2">Classificação</label>
+                  <select required className="w-full p-3 bg-black/50 border border-white/10 rounded-xl text-white focus:border-emerald-500 outline-none transition font-mono text-xs uppercase cursor-pointer" value={novoRegistro.tipo_evento} onChange={(e) => setNovoRegistro({...novoRegistro, tipo_evento: e.target.value})}>
+                    <option value="Palestra" className="bg-[#111]">Palestra</option>
+                    <option value="Hands-On" className="bg-[#111]">Hands-On</option>
+                    <option value="Demonstração" className="bg-[#111]">Demonstração</option>
                   </select>
                 </div>
-                <div className="pt-4 flex gap-3 justify-end border-t border-gray-100 mt-6">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md transition font-medium">Cancelar</button>
-                  <button type="submit" disabled={loadingForm} className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium disabled:opacity-50">{loadingForm ? 'Salvando...' : (isEditing ? 'Atualizar Grade' : 'Salvar na Grade')}</button>
+                <div className="pt-4 flex gap-3 justify-end border-t border-white/5 mt-6">
+                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition font-black uppercase text-xs tracking-widest">Voltar</button>
+                  <button type="submit" disabled={loadingForm} className="px-6 py-3 bg-emerald-600 text-black rounded-xl hover:bg-emerald-500 transition font-black uppercase text-xs tracking-widest disabled:opacity-50">{loadingForm ? 'PROCESSANDO...' : (isEditing ? 'ATUALIZAR' : 'INSERIR DADOS')}</button>
                 </div>
               </form>
             </motion.div>
@@ -278,19 +292,19 @@ export default function AbaAgenda() {
         )}
       </AnimatePresence>
 
-      {/* Modal de Exclusão Original mantido */}
+      {/* Modal de Exclusão */}
       <AnimatePresence>
         {modalConfirmacao.isOpen && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-white rounded-2xl shadow-2xl w-full max-sm overflow-hidden p-6 text-center">
-              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="bg-[#0a0a0a] border border-red-500/20 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden p-8 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mb-6 border border-red-500/20">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Excluir Registro?</h3>
-              <p className="text-sm text-gray-500 mb-6">Esta ação não pode ser desfeita. O agendamento será apagado permanentemente do sistema.</p>
+              <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">Confirmar Exclusão</h3>
+              <p className="text-xs text-gray-500 mb-8 font-mono uppercase">O registro será excluído permanentemente do banco de dados.</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={() => setModalConfirmacao({ isOpen: false, idToDelete: null })} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition font-medium">Cancelar</button>
-                <button onClick={confirmarExclusao} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium">Sim, excluir</button>
+                <button onClick={() => setModalConfirmacao({ isOpen: false, idToDelete: null })} className="flex-1 px-4 py-3 text-gray-400 bg-white/5 hover:bg-white/10 rounded-xl transition font-black text-xs uppercase tracking-widest">Cancelar</button>
+                <button onClick={confirmarExclusao} className="flex-1 px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-500 transition font-black text-xs uppercase tracking-widest">EXCLUIR</button>
               </div>
             </motion.div>
           </div>

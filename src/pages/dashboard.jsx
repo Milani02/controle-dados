@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, CalendarDays, Users, Package } from 'lucide-react';
+import { LogOut, CalendarDays, Users, Package, LayoutDashboard } from 'lucide-react';
+import logoBiodinamica from '../assets/logo-biodinamica.png';
 
-// Vamos importar os componentes (vamos criá-los no próximo passo)
 import AbaAgenda from '../components/AbaAgenda';
 import AbaInfluenciadores from '../components/AbaInfluenciadores';
 import AbaMateriais from '../components/AbaMateriais';
@@ -24,16 +24,20 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-[#050505] text-gray-300 font-sans">
       
-      {/* Menu Lateral (Sidebar) */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-6 border-b border-gray-100">
-          <h1 className="text-xl font-bold text-blue-600 tracking-tight">CIOSP 2026</h1>
-          <p className="text-xs text-gray-500 mt-1">Gestão de Eventos</p>
+      {/* Sidebar Tecnológica */}
+      <aside className="w-72 bg-[#0a0a0a] border-r border-emerald-500/10 flex flex-col shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
+        <div className="p-8 mb-4">
+          <img src={logoBiodinamica} alt="Logo" className="w-40 h-auto mb-2 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" />
+          <div className="flex items-center gap-2 mt-4 px-1">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-[0.2em] text-emerald-500/70 font-bold">Sistema Online</span>
+          </div>
         </div>
         
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 px-4 space-y-2">
+          <p className="px-4 text-[10px] uppercase tracking-widest text-gray-600 font-bold mb-4">Navegação</p>
           {menus.map((menu) => {
             const Icon = menu.icone;
             const ativo = abaAtiva === menu.id;
@@ -41,32 +45,40 @@ export default function Dashboard() {
               <button
                 key={menu.id}
                 onClick={() => setAbaAtiva(menu.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-sm
-                  ${ativo ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}
+                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl transition-all duration-300 group
+                  ${ativo 
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' 
+                    : 'hover:bg-white/5 text-gray-500 hover:text-gray-300'}`}
               >
-                <Icon className={`w-5 h-5 ${ativo ? 'text-blue-600' : 'text-gray-400'}`} />
-                {menu.nome}
+                <Icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${ativo ? 'text-emerald-500' : 'text-gray-600'}`} />
+                <span className="text-sm font-bold tracking-tight">{menu.nome}</span>
+                {ativo && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />}
               </button>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-6">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium text-sm"
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-red-500/5 hover:bg-red-500/10 text-red-500 border border-red-500/10 rounded-xl transition-all text-xs font-black uppercase tracking-tighter"
           >
-            <LogOut className="w-5 h-5" />
-            Sair do Sistema
+            <LogOut className="w-4 h-4" />
+            Encerrar Sessão
           </button>
         </div>
       </aside>
 
-      {/* Área de Conteúdo Principal */}
-      <main className="flex-1 overflow-y-auto">
-        {abaAtiva === 'agenda' && <AbaAgenda />}
-        {abaAtiva === 'influenciadores' && <AbaInfluenciadores />}
-        {abaAtiva === 'materiais' && <AbaMateriais />}
+      {/* Área de Conteúdo com Scroll Customizado */}
+      <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+        {/* Background decorativo sutil */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-emerald-500/5 blur-[120px] pointer-events-none" />
+        
+        <div className="relative z-10 h-full">
+            {abaAtiva === 'agenda' && <AbaAgenda />}
+            {abaAtiva === 'influenciadores' && <AbaInfluenciadores />}
+            {abaAtiva === 'materiais' && <AbaMateriais />}
+        </div>
       </main>
 
     </div>
