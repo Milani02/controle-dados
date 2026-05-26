@@ -38,3 +38,11 @@
   background: #10b981;
   border-radius: 5px;
 }
+/* Oculta a barra de rolagem visualmente, mas mantém o funcionamento (Deslizar) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
