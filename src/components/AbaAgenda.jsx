@@ -17,8 +17,9 @@ export default function AbaAgenda() {
   const [idEmEdicao, setIdEmEdicao] = useState(null);
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
+  // Adicionado o campo "descricao" ao estado inicial
   const [novoRegistro, setNovoRegistro] = useState({
-    professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: ''
+    professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: ''
   });
 
   useEffect(() => { fetchRegistros(); }, []);
@@ -30,7 +31,16 @@ export default function AbaAgenda() {
 
   const abrirEdicao = (registro) => {
     setIsEditing(true); setIdEmEdicao(registro.id);
-    setNovoRegistro({ professor: registro.professor, tema: registro.tema, data: registro.data, horario: registro.horario, tipo_evento: registro.tipo_evento, observacoes: registro.observacoes || '' });
+    // Adicionado o mapeamento do campo "descricao" para a edição
+    setNovoRegistro({ 
+      professor: registro.professor, 
+      tema: registro.tema, 
+      data: registro.data, 
+      horario: registro.horario, 
+      tipo_evento: registro.tipo_evento, 
+      observacoes: registro.observacoes || '',
+      descricao: registro.descricao || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -70,7 +80,8 @@ export default function AbaAgenda() {
         if (error) throw error;
       }
       fetchRegistros(); setIsModalOpen(false); setIsEditing(false); setIdEmEdicao(null);
-      setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '' });
+      // Resetando a "descricao" após salvar
+      setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '' });
     } catch (error) {
       alert("Erro ao salvar: " + error.message);
     } finally { setLoadingForm(false); }
@@ -137,11 +148,12 @@ export default function AbaAgenda() {
         <table>
           <thead>
             <tr>
-              <th style="width: 25%;">PROFESSOR</th>
-              <th style="width: 25%;">TEMA</th>
+              <th style="width: 20%;">PROFESSOR</th>
+              <th style="width: 20%;">TEMA</th>
+              <th style="width: 20%;">DESCRIÇÃO</th>
               <th style="width: 15%; text-align: center;">DATA</th>
-              <th style="width: 10%; text-align: center;">HORA</th>
-              <th style="width: 15%; text-align: center;">TIPO</th>
+              <th style="width: 5%; text-align: center;">HORA</th>
+              <th style="width: 10%; text-align: center;">TIPO</th>
               <th style="width: 10%; text-align: center;">STATUS</th>
             </tr>
           </thead>
@@ -160,6 +172,7 @@ export default function AbaAgenda() {
                 <tr style="background-color: ${bgColor};">
                   <td><strong style="color: #111827;">${r.professor}</strong></td>
                   <td style="color: #4b5563;">${r.tema}</td>
+                  <td style="color: #4b5563;">${r.descricao || '-'}</td>
                   <td style="text-align: center; color: #111827;">${formatarDataBr(r.data)}</td>
                   <td style="text-align: center; font-weight: bold; color: #111827;">${r.horario ? r.horario.substring(0,5) : '00:00'}</td>
                   <td style="text-align: center; color: #4b5563;">${r.tipo_evento}</td>
@@ -208,7 +221,7 @@ export default function AbaAgenda() {
               <button onClick={exportarParaWord} className="flex-1 md:flex-none bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 px-4 md:px-6 py-3 rounded-xl flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
                 <Download className="w-4 h-4" /> <span className="hidden sm:inline">Word</span>
               </button>
-              <button onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap">
+              <button onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap">
                 <Plus className="w-4 h-4" /> Agendar
               </button>
             </div>
@@ -311,6 +324,19 @@ export default function AbaAgenda() {
                       <option value="Palestra">Palestra</option><option value="Hands-On">Hands-On</option><option value="Demonstração">Demonstração</option>
                     </select>
                   </div>
+
+                  {/* NOVO CAMPO: DESCRIÇÃO / ANOTAÇÕES */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Descrição / Anotações</label>
+                    <textarea 
+                      rows="3"
+                      className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase resize-none" 
+                      value={novoRegistro.descricao} 
+                      onChange={(e) => setNovoRegistro({...novoRegistro, descricao: e.target.value})} 
+                      placeholder="Adicione anotações sobre este registro..."
+                    ></textarea>
+                  </div>
+
                 </div>
                 
                 <div className="shrink-0 p-4 md:p-6 pb-8 md:pb-6 border-t border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-[#050505] flex flex-col sm:flex-row gap-3 sm:justify-end">
