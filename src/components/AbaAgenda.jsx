@@ -17,7 +17,6 @@ export default function AbaAgenda() {
   const [idEmEdicao, setIdEmEdicao] = useState(null);
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
-  // Adicionado o campo "descricao" ao estado inicial
   const [novoRegistro, setNovoRegistro] = useState({
     professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: ''
   });
@@ -31,7 +30,6 @@ export default function AbaAgenda() {
 
   const abrirEdicao = (registro) => {
     setIsEditing(true); setIdEmEdicao(registro.id);
-    // Adicionado o mapeamento do campo "descricao" para a edição
     setNovoRegistro({ 
       professor: registro.professor, 
       tema: registro.tema, 
@@ -44,9 +42,54 @@ export default function AbaAgenda() {
     setIsModalOpen(true);
   };
 
+  // Lógica principal de atualização e duplicação automática para 2027
   const atualizarStatus = async (id, novoStatus) => {
+    const registroAtual = registros.find(r => r.id === id);
+    if (!registroAtual) return;
+
+    // Atualiza o status no banco de dados para o registro atual
     const { error } = await supabase.from('programacao_ciosp').update({ status: novoStatus }).eq('id', id);
-    if (!error) setRegistros(registros.map(r => r.id === id ? { ...r, status: novoStatus } : r));
+    
+    if (!error) {
+      // Atualiza a tela imediatamente
+      setRegistros(prevRegistros => prevRegistros.map(r => r.id === id ? { ...r, status: novoStatus } : r));
+
+      // SE FOR "SIM" E FOR DE 2026: CRIA A CÓPIA PARA 2027
+      if (novoStatus === 'Sim' && registroAtual.data && registroAtual.data.startsWith('2026')) {
+        const novaData2027 = registroAtual.data.replace('2026', '2027');
+        
+        // Trava de Segurança: Verifica se já não foi duplicado antes para evitar repetições
+        const jaFoiDuplicado = registros.some(r => 
+          r.professor === registroAtual.professor && 
+          r.tema === registroAtual.tema && 
+          r.data === novaData2027
+        );
+
+        if (!jaFoiDuplicado) {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const novoRegistroPara2027 = {
+              professor: registroAtual.professor,
+              tema: registroAtual.tema,
+              data: novaData2027, // Mesma data, mas em 2027
+              horario: registroAtual.horario,
+              tipo_evento: registroAtual.tipo_evento,
+              observacoes: registroAtual.observacoes,
+              descricao: registroAtual.descricao,
+              status: 'Pendente', // Inicia como pendente no futuro
+              user_id: user.id
+            };
+
+            const { error: insertError } = await supabase.from('programacao_ciosp').insert([novoRegistroPara2027]);
+            if (!insertError) {
+              fetchRegistros(); // Puxa novamente do banco para que o registro de 2027 apareça no app
+            }
+          }
+        }
+      }
+    } else {
+      alert("Erro ao atualizar status: " + error.message);
+    }
   };
 
   const abrirModalExclusao = (id) => {
@@ -80,7 +123,6 @@ export default function AbaAgenda() {
         if (error) throw error;
       }
       fetchRegistros(); setIsModalOpen(false); setIsEditing(false); setIdEmEdicao(null);
-      // Resetando a "descricao" após salvar
       setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '' });
     } catch (error) {
       alert("Erro ao salvar: " + error.message);
@@ -89,16 +131,20 @@ export default function AbaAgenda() {
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'Aprovado': return 'bg-emerald-200 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/50';
-      case 'Não autorizado': return 'bg-red-200 dark:bg-red-500/20 text-red-800 dark:text-red-300 border-red-300 dark:border-red-500/50';
+      case 'Aprovado':
+      case 'Sim': return 'bg-emerald-200 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/50';
+      case 'Não autorizado':
+      case 'Não': return 'bg-red-200 dark:bg-red-500/20 text-red-800 dark:text-red-300 border-red-300 dark:border-red-500/50';
       default: return 'bg-yellow-200 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/50';
     }
   };
 
   const getRowColor = (status) => {
     switch(status) {
-      case 'Aprovado': return 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/60';
-      case 'Não autorizado': return 'bg-red-100 dark:bg-red-900/40 border-red-200 dark:border-red-800/50 hover:bg-red-200 dark:hover:bg-red-900/60';
+      case 'Aprovado':
+      case 'Sim': return 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-200 dark:hover:bg-emerald-900/60';
+      case 'Não autorizado':
+      case 'Não': return 'bg-red-100 dark:bg-red-900/40 border-red-200 dark:border-red-800/50 hover:bg-red-200 dark:hover:bg-red-900/60';
       default: return 'bg-yellow-100 dark:bg-yellow-900/40 border-yellow-200 dark:border-yellow-800/50 hover:bg-yellow-200 dark:hover:bg-yellow-900/60'; 
     }
   };
@@ -122,7 +168,6 @@ export default function AbaAgenda() {
   const diasDisponiveis = [...new Set(registrosDoAno.map(r => r.data))].filter(Boolean).sort();
   const temasDisponiveis = [...new Set(registrosDoAno.filter(r => r.tema).map(r => r.tema.trim().toUpperCase()))].sort();
 
-  // FUNÇÃO DE EXPORTAR PARA WORD (COM ESTILO PREMIUM)
   const exportarParaWord = () => {
     const dataAtual = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -159,14 +204,12 @@ export default function AbaAgenda() {
           </thead>
           <tbody>
             ${registrosFiltrados.map((r, index) => {
-              // Alternância de cores (Zebra) feita por script para o Word reconhecer perfeitamente
               const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
               
-              // Cores do Status
               let statusColor = '#4b5563'; 
-              if (r.status === 'Aprovado') statusColor = '#059669'; 
+              if (r.status === 'Aprovado' || r.status === 'Sim') statusColor = '#059669'; 
               else if (r.status === 'Pendente') statusColor = '#d97706'; 
-              else if (r.status === 'Não autorizado') statusColor = '#dc2626';
+              else if (r.status === 'Não autorizado' || r.status === 'Não') statusColor = '#dc2626';
 
               return `
                 <tr style="background-color: ${bgColor};">
@@ -275,9 +318,33 @@ export default function AbaAgenda() {
                       <td className="p-4 md:p-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-lg text-[9px] font-black border ${getStatusColor(registro.status)}`}>{registro.status || 'PENDENTE'}</span></td>
                       <td className="p-4 md:p-5 text-right flex justify-end items-center gap-2 whitespace-nowrap">
                         <button onClick={() => abrirEdicao(registro)} className="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 p-2"><Pencil className="w-4 h-4" /></button>
-                        <select value={registro.status || 'Pendente'} onChange={(e) => atualizarStatus(registro.id, e.target.value)} className="bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] font-black text-gray-900 dark:text-white outline-none cursor-pointer">
-                          <option value="Pendente" className="bg-white dark:bg-[#0a0a0a]">Pendente</option><option value="Aprovado" className="bg-white dark:bg-[#0a0a0a]">Aprovado</option><option value="Não autorizado" className="bg-white dark:bg-[#0a0a0a]">Não Autorizado</option>
+                        
+                        {/* SELECT INTELIGENTE: Muda de acordo com o ano */}
+                        <select 
+                          value={registro.status || 'Pendente'} 
+                          onChange={(e) => atualizarStatus(registro.id, e.target.value)} 
+                          className="bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-[10px] font-black text-gray-900 dark:text-white outline-none cursor-pointer"
+                        >
+                          {registro.data && registro.data.startsWith('2026') ? (
+                            <>
+                              {/* Se ainda estiver como Pendente, mostra apenas como marcador para ele selecionar Sim/Não */}
+                              {registro.status !== 'Sim' && registro.status !== 'Não' && (
+                                <option value={registro.status || 'Pendente'} disabled className="bg-white dark:bg-[#0a0a0a] text-gray-400">
+                                  {registro.status || 'Status?'}
+                                </option>
+                              )}
+                              <option value="Sim" className="bg-white dark:bg-[#0a0a0a]">Sim</option>
+                              <option value="Não" className="bg-white dark:bg-[#0a0a0a]">Não</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Pendente" className="bg-white dark:bg-[#0a0a0a]">Pendente</option>
+                              <option value="Aprovado" className="bg-white dark:bg-[#0a0a0a]">Aprovado</option>
+                              <option value="Não autorizado" className="bg-white dark:bg-[#0a0a0a]">Não Autorizado</option>
+                            </>
+                          )}
                         </select>
+
                         <button onClick={() => abrirModalExclusao(registro.id)} className="text-gray-600 dark:text-gray-400 hover:text-red-500 p-2"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </motion.tr>
@@ -325,7 +392,6 @@ export default function AbaAgenda() {
                     </select>
                   </div>
 
-                  {/* NOVO CAMPO: DESCRIÇÃO / ANOTAÇÕES */}
                   <div>
                     <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Descrição / Anotações</label>
                     <textarea 
