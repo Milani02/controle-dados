@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { Search, X, Calendar, Trash2, AlertTriangle, Pencil, Tag, Plus, Download } from 'lucide-react';
+import { Search, X, Calendar, Trash2, AlertTriangle, Pencil, Tag, Plus, Download, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function AbaAgenda() {
@@ -18,7 +18,7 @@ export default function AbaAgenda() {
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
   const [novoRegistro, setNovoRegistro] = useState({
-    professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: ''
+    professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '', contatado: false
   });
 
   useEffect(() => { fetchRegistros(); }, []);
@@ -37,22 +37,30 @@ export default function AbaAgenda() {
       horario: registro.horario, 
       tipo_evento: registro.tipo_evento, 
       observacoes: registro.observacoes || '',
-      descricao: registro.descricao || ''
+      descricao: registro.descricao || '',
+      contatado: registro.contatado || false
     });
     setIsModalOpen(true);
   };
+
+  // Status que representam uma resposta definitiva do professor (aprovado/reprovado)
+  const STATUS_COM_RESPOSTA = ['Aprovado', 'Não autorizado', 'Sim', 'Não'];
 
   // Lógica principal de atualização e duplicação automática para 2027
   const atualizarStatus = async (id, novoStatus) => {
     const registroAtual = registros.find(r => r.id === id);
     if (!registroAtual) return;
 
+    // Se o status já é uma resposta definitiva, o contato fica travado como feito
+    const respostaRecebida = STATUS_COM_RESPOSTA.includes(novoStatus);
+    const payload = respostaRecebida ? { status: novoStatus, contatado: true } : { status: novoStatus };
+
     // Atualiza o status no banco de dados para o registro atual
-    const { error } = await supabase.from('programacao_ciosp').update({ status: novoStatus }).eq('id', id);
-    
+    const { error } = await supabase.from('programacao_ciosp').update(payload).eq('id', id);
+
     if (!error) {
       // Atualiza a tela imediatamente
-      setRegistros(prevRegistros => prevRegistros.map(r => r.id === id ? { ...r, status: novoStatus } : r));
+      setRegistros(prevRegistros => prevRegistros.map(r => r.id === id ? { ...r, ...payload } : r));
 
       // SE FOR "SIM" E FOR DE 2026: CRIA A CÓPIA PARA 2027
       if (novoStatus === 'Sim' && registroAtual.data && registroAtual.data.startsWith('2026')) {
@@ -92,6 +100,19 @@ export default function AbaAgenda() {
     }
   };
 
+  const atualizarContato = async (id, novoValor) => {
+    const registroAtual = registros.find(r => r.id === id);
+    // Trava: se já houve resposta (aprovado/reprovado), o contato fica fixo como feito
+    if (registroAtual && STATUS_COM_RESPOSTA.includes(registroAtual.status)) return;
+
+    const { error } = await supabase.from('programacao_ciosp').update({ contatado: novoValor }).eq('id', id);
+    if (!error) {
+      setRegistros(prevRegistros => prevRegistros.map(r => r.id === id ? { ...r, contatado: novoValor } : r));
+    } else {
+      alert("Erro ao atualizar contato: " + error.message);
+    }
+  };
+
   const abrirModalExclusao = (id) => {
     setModalConfirmacao({ isOpen: true, idToDelete: id });
   };
@@ -123,7 +144,7 @@ export default function AbaAgenda() {
         if (error) throw error;
       }
       fetchRegistros(); setIsModalOpen(false); setIsEditing(false); setIdEmEdicao(null);
-      setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '' });
+      setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '', contatado: false });
     } catch (error) {
       alert("Erro ao salvar: " + error.message);
     } finally { setLoadingForm(false); }
@@ -264,7 +285,7 @@ export default function AbaAgenda() {
               <button onClick={exportarParaWord} className="flex-1 md:flex-none bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 px-4 md:px-6 py-3 rounded-xl flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
                 <Download className="w-4 h-4" /> <span className="hidden sm:inline">Word</span>
               </button>
-              <button onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap">
+              <button onClick={() => { setIsEditing(false); setNovoRegistro({ professor: '', tema: '', data: '', horario: '', tipo_evento: 'Palestra', observacoes: '', descricao: '', contatado: false }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex items-center justify-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap">
                 <Plus className="w-4 h-4" /> Agendar
               </button>
             </div>
@@ -305,7 +326,7 @@ export default function AbaAgenda() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/5 text-[10px] text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.2em] font-black">
-                  <th className="p-4 md:p-5">Professor</th><th className="p-4 md:p-5">Tema</th><th className="p-4 md:p-5">Data/Hora</th><th className="p-4 md:p-5">Tipo</th><th className="p-4 md:p-5">Status</th><th className="p-4 md:p-5 text-right">Comandos</th>
+                  <th className="p-4 md:p-5">Professor</th><th className="p-4 md:p-5">Tema</th><th className="p-4 md:p-5">Data/Hora</th><th className="p-4 md:p-5">Tipo</th><th className="p-4 md:p-5">Contato</th><th className="p-4 md:p-5">Status</th><th className="p-4 md:p-5 text-right">Comandos</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-mono uppercase tracking-tighter">
@@ -315,6 +336,25 @@ export default function AbaAgenda() {
                       <td className="p-4 md:p-5 text-gray-700 dark:text-gray-300 text-xs">{registro.tema}</td>
                       <td className="p-4 md:p-5 text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatarDataBr(registro.data)} <span className="text-gray-500 dark:text-gray-400 ml-1">{registro.horario ? registro.horario.substring(0,5) : '00:00'}</span></td>
                       <td className="p-4 md:p-5 whitespace-nowrap"><span className="px-3 py-1 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-white rounded-lg text-[9px] font-black border border-gray-200 dark:border-white/10">{registro.tipo_evento}</span></td>
+                      <td className="p-4 md:p-5 whitespace-nowrap">
+                        {STATUS_COM_RESPOSTA.includes(registro.status) ? (
+                          <span
+                            title="Resposta já recebida - contato fixado automaticamente"
+                            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black border bg-blue-200 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/50 opacity-80 cursor-default w-fit"
+                          >
+                            <MessageCircle className="w-3 h-3" /> Contato Confirmado
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => atualizarContato(registro.id, !registro.contatado)}
+                            title={registro.contatado ? 'Contato feito - aguardando resposta do professor' : 'Marcar como contatado'}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] font-black border transition-colors ${registro.contatado ? 'bg-blue-200 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/50' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10'}`}
+                          >
+                            <MessageCircle className="w-3 h-3" /> {registro.contatado ? 'Aguardando Resposta' : 'Não Contatado'}
+                          </button>
+                        )}
+                      </td>
                       <td className="p-4 md:p-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-lg text-[9px] font-black border ${getStatusColor(registro.status)}`}>{registro.status || 'PENDENTE'}</span></td>
                       <td className="p-4 md:p-5 text-right flex justify-end items-center gap-2 whitespace-nowrap">
                         <button onClick={() => abrirEdicao(registro)} className="text-gray-600 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 p-2"><Pencil className="w-4 h-4" /></button>
@@ -348,7 +388,7 @@ export default function AbaAgenda() {
                         <button onClick={() => abrirModalExclusao(registro.id)} className="text-gray-600 dark:text-gray-400 hover:text-red-500 p-2"><Trash2 className="w-4 h-4" /></button>
                       </td>
                     </motion.tr>
-                  )) : <tr><td colSpan="6" className="p-8 text-center text-gray-400 font-mono text-xs uppercase">Nenhum registro.</td></tr>}
+                  )) : <tr><td colSpan="7" className="p-8 text-center text-gray-400 font-mono text-xs uppercase">Nenhum registro.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -391,6 +431,11 @@ export default function AbaAgenda() {
                       <option value="Palestra">Palestra</option><option value="Hands-On">Hands-On</option><option value="Demonstração">Demonstração</option>
                     </select>
                   </div>
+
+                  <label className="flex items-center gap-3 p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 accent-blue-600 cursor-pointer" checked={novoRegistro.contatado} onChange={(e) => setNovoRegistro({...novoRegistro, contatado: e.target.checked})} />
+                    <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest">Já entrei em contato - aguardando resposta do professor</span>
+                  </label>
 
                   <div>
                     <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Descrição / Anotações</label>
