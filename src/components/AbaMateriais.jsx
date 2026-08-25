@@ -83,12 +83,18 @@ export default function AbaMateriais() {
   const filtrados = materiais.filter(m => {
     const matchBusca = m.nome.toLowerCase().includes(busca.toLowerCase());
     let matchAba = false;
-    if (abaAtiva === 'Todas') matchAba = true;
+    if (abaAtiva === 'Todas') { matchAba = true; if (subAba !== 'Todas') matchAba = m.categoria?.includes(subAba); }
     else if (abaAtiva === 'Materiais para Hands-On') matchAba = m.categoria === 'Materiais para Hands-On';
     else if (abaAtiva === 'Materiais Oraltech') { matchAba = m.categoria?.includes('Oraltech'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
     else if (abaAtiva === 'Materiais Biodinâmica') { matchAba = m.categoria?.includes('Biodinâmica'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
     return matchBusca && matchAba;
   });
+
+  const subAbasPorAba = {
+    'Materiais Oraltech': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
+    'Materiais Biodinâmica': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares', 'Balcão 1', 'Balcão 2', 'Balcão 3'],
+    'Todas': ['Todas', 'Balcão 1', 'Balcão 2', 'Balcão 3'],
+  };
 
   // FUNÇÃO DE EXPORTAR PARA WORD (COM ESTILO PREMIUM)
   const exportarParaWord = () => {
@@ -133,7 +139,7 @@ export default function AbaMateriais() {
               return `
                 <tr style="background-color: ${bgColor};">
                   <td style="text-align: center;">${statusHtml}</td>
-                  <td style="color: ${item.verificado ? '#9ca3af' : '#111827'}; text-decoration: ${item.verificado ? 'line-through' : 'none'}; font-weight: bold;">${item.nome}</td>
+                  <td style="color: ${item.verificado ? '#9ca3af' : '#111827'}; font-weight: bold;">${item.nome}</td>
                   <td style="color: #4b5563;">${item.categoria}</td>
                   <td style="text-align: center; font-weight: bold; color: #111827;">${item.quantidade} UN</td>
                 </tr>
@@ -185,10 +191,10 @@ export default function AbaMateriais() {
         </div>
 
         <AnimatePresence>
-          {(abaAtiva === 'Materiais Oraltech' || abaAtiva === 'Materiais Biodinâmica') && (
+          {subAbasPorAba[abaAtiva] && (
             <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: -10 }} className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide w-full">
-              {['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'].map(sub => (
-                <button key={sub} onClick={() => setSubAba(sub)} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? `Todas de ${abaAtiva.replace('Materiais ', '')}` : sub}</button>
+              {subAbasPorAba[abaAtiva].map(sub => (
+                <button key={sub} onClick={() => setSubAba(sub)} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? (abaAtiva === 'Todas' ? 'Todas' : `Todas de ${abaAtiva.replace('Materiais ', '')}`) : sub}</button>
               ))}
             </motion.div>
           )}
@@ -213,7 +219,7 @@ export default function AbaMateriais() {
                 {filtrados.length > 0 ? filtrados.map((item) => (
                   <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={item.id} className="bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-[#222] hover:bg-gray-50 dark:hover:bg-[#222] transition-colors group">
                     <td className="p-4 md:p-5 text-center"><button onClick={() => alternarVerificacao(item.id, item.verificado)} className="text-gray-400 hover:text-emerald-500 transition-colors">{item.verificado ? <CheckSquare className="w-5 h-5 text-emerald-500" /> : <Square className="w-5 h-5 text-gray-400 dark:text-gray-600" />}</button></td>
-                    <td className={`p-4 md:p-5 font-bold ${item.verificado ? 'text-gray-400 dark:text-gray-500 line-through' : 'text-gray-900 dark:text-white'}`}>{item.nome}</td>
+                    <td className={`p-4 md:p-5 font-bold ${item.verificado ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.nome}</td>
                     <td className="p-4 md:p-5 text-gray-600 dark:text-gray-400 text-[10px] md:text-xs leading-tight">{item.categoria}</td>
                     <td className="p-4 md:p-5 text-center font-black text-gray-900 dark:text-white"><span className="px-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg whitespace-nowrap">{item.quantidade} UN</span></td>
                     <td className="p-4 md:p-5 text-right flex justify-end items-center gap-2"><button onClick={() => abrirEdicao(item)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-2" title="Editar"><Pencil className="w-4 h-4" /></button><button onClick={() => abrirModalExclusao(item.id)} className="text-gray-400 hover:text-red-500 p-2" title="Excluir"><Trash2 className="w-4 h-4" /></button></td>
@@ -254,6 +260,9 @@ export default function AbaMateriais() {
                         <option value="Materiais Biodinâmica - Vitrine" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine (Biodinâmica)</option>
                         <option value="Materiais Biodinâmica - Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Demonstração (Biodinâmica)</option>
                         <option value="Materiais Biodinâmica - Materiais Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Balcão 1" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 1 (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Balcão 2" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 2 (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Balcão 3" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 3 (Biodinâmica)</option>
                       </optgroup>
                     </select>
                   </div>
