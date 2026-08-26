@@ -33,7 +33,9 @@ export default function AbaMateriais() {
 
   const abrirEdicao = (item) => {
     setIsEditing(true); setIdEmEdicao(item.id);
-    const categoria = formatCategoria(item.categoria);
+    // Categoria legada (antes das sub-abas Produtos/Auxiliares) não bate com nenhuma opção do select.
+    let categoria = formatCategoria(item.categoria);
+    if (categoria === 'Materiais para Hands-On') categoria = 'Materiais para Hands-On - Produtos';
     const balcaoExtraido = getBalcao(item.categoria);
     setNovoMaterial({ nome: item.nome, categoria, quantidade: item.quantidade, verificado: item.verificado || false, balcao: balcaoExtraido === '-' ? '' : balcaoExtraido });
     setIsModalOpen(true);
