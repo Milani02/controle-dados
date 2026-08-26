@@ -17,7 +17,7 @@ export default function AbaMateriais() {
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
   const [novoMaterial, setNovoMaterial] = useState({
-    nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: ''
+    nome: '', categoria: 'Materiais para Hands-On - Produtos', quantidade: 1, verificado: false, balcao: ''
   });
 
   const REGEX_BALCAO = / - (Balcão \d)$/;
@@ -91,7 +91,7 @@ export default function AbaMateriais() {
         if (error) throw error;
       }
       fetchMateriais(); setIsModalOpen(false); setIsEditing(false); setIdEmEdicao(null);
-      setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: '' });
+      setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On - Produtos', quantidade: 1, verificado: false, balcao: '' });
     } catch (error) {
       alert("Erro ao salvar: " + error.message);
     } finally { setLoadingForm(false); }
@@ -101,7 +101,7 @@ export default function AbaMateriais() {
     const matchBusca = m.nome.toLowerCase().includes(busca.toLowerCase());
     let matchAba = false;
     if (abaAtiva === 'Todas') matchAba = true;
-    else if (abaAtiva === 'Materiais para Hands-On') matchAba = m.categoria === 'Materiais para Hands-On';
+    else if (abaAtiva === 'Materiais para Hands-On') { matchAba = m.categoria?.startsWith('Materiais para Hands-On'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
     else if (abaAtiva === 'Materiais Oraltech') { matchAba = m.categoria?.includes('Oraltech'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
     else if (abaAtiva === 'Materiais Biodinâmica') {
       matchAba = m.categoria?.includes('Biodinâmica');
@@ -112,6 +112,7 @@ export default function AbaMateriais() {
   });
 
   const subAbasPorAba = {
+    'Materiais para Hands-On': ['Todas', 'Produtos', 'Auxiliares'],
     'Materiais Oraltech': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
     'Materiais Biodinâmica': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
   };
@@ -201,7 +202,7 @@ export default function AbaMateriais() {
             <button onClick={exportarParaWord} className="flex-1 md:flex-none bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 px-4 md:px-6 py-3 rounded-xl flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">Word</span>
             </button>
-            <button onClick={() => { setIsEditing(false); setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
+            <button onClick={() => { setIsEditing(false); setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On - Produtos', quantidade: 1, verificado: false, balcao: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
               <Plus className="w-4 h-4" /> Adicionar
             </button>
           </div>
@@ -217,7 +218,7 @@ export default function AbaMateriais() {
           {subAbasPorAba[abaAtiva] && (
             <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: -10 }} className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide w-full">
               {subAbasPorAba[abaAtiva].map(sub => (
-                <button key={sub} onClick={() => { setSubAba(sub); setBalcaoAtivo('Todos'); }} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? (abaAtiva === 'Todas' ? 'Todas' : `Todas de ${abaAtiva.replace('Materiais ', '')}`) : sub}</button>
+                <button key={sub} onClick={() => { setSubAba(sub); setBalcaoAtivo('Todos'); }} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? (abaAtiva === 'Todas' ? 'Todas' : `Todas de ${abaAtiva.replace('Materiais para ', '').replace('Materiais ', '')}`) : sub}</button>
               ))}
             </motion.div>
           )}
@@ -284,7 +285,10 @@ export default function AbaMateriais() {
                   <div>
                     <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Classificação / Categoria</label>
                     <select required className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase cursor-pointer" value={novoMaterial.categoria} onChange={(e) => setNovoMaterial({...novoMaterial, categoria: e.target.value, balcao: ''})}>
-                      <option value="Materiais para Hands-On" className="bg-white dark:bg-[#111]">Materiais para Hands-On</option>
+                      <optgroup label="MATERIAIS PARA HANDS-ON" className="bg-gray-200 dark:bg-[#222] font-black text-emerald-700 dark:text-emerald-500">
+                        <option value="Materiais para Hands-On - Produtos" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Produtos (Hands-On)</option>
+                        <option value="Materiais para Hands-On - Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Hands-On)</option>
+                      </optgroup>
                       <optgroup label="MARCA: ORALTECH" className="bg-gray-200 dark:bg-[#222] font-black text-emerald-700 dark:text-emerald-500">
                         <option value="Materiais Oraltech - Vitrine" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine (Oraltech)</option>
                         <option value="Materiais Oraltech - Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Demonstração (Oraltech)</option>
