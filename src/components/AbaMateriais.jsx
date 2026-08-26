@@ -8,7 +8,8 @@ export default function AbaMateriais() {
   const [busca, setBusca] = useState('');
   const [abaAtiva, setAbaAtiva] = useState('Todas');
   const [subAba, setSubAba] = useState('Todas');
-  
+  const [balcaoAtivo, setBalcaoAtivo] = useState('Todos');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loadingForm, setLoadingForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -16,7 +17,7 @@ export default function AbaMateriais() {
   const [modalConfirmacao, setModalConfirmacao] = useState({ isOpen: false, idToDelete: null });
 
   const [novoMaterial, setNovoMaterial] = useState({
-    nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false
+    nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: ''
   });
 
   useEffect(() => { fetchMateriais(); }, []);
@@ -28,13 +29,21 @@ export default function AbaMateriais() {
 
   const abrirEdicao = (item) => {
     setIsEditing(true); setIdEmEdicao(item.id);
-    setNovoMaterial({ nome: item.nome, categoria: item.categoria, quantidade: item.quantidade, verificado: item.verificado || false });
+    const base = 'Materiais Biodinâmica - Vitrine e Demonstração';
+    let categoria = item.categoria;
+    let balcao = '';
+    if (categoria?.startsWith(`${base} - `)) {
+      balcao = categoria.replace(`${base} - `, '');
+      categoria = base;
+    }
+    setNovoMaterial({ nome: item.nome, categoria, quantidade: item.quantidade, verificado: item.verificado || false, balcao });
     setIsModalOpen(true);
   };
 
   const handleTabChange = (aba) => {
     setAbaAtiva(aba);
-    setSubAba('Todas'); 
+    setSubAba('Todas');
+    setBalcaoAtivo('Todos');
   };
 
   const alternarVerificacao = async (id, statusAtual) => {
@@ -60,21 +69,30 @@ export default function AbaMateriais() {
     }
   };
 
+  const precisaBalcao = novoMaterial.categoria === 'Materiais Biodinâmica - Vitrine e Demonstração';
+
   const handleSalvarMaterial = async (e) => {
     e.preventDefault(); setLoadingForm(true);
     try {
+      if (precisaBalcao && !novoMaterial.balcao) {
+        alert("Selecione o balcão deste item."); setLoadingForm(false); return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { alert("Sessão expirada. Faça login novamente."); setLoadingForm(false); return; }
 
+      const { balcao, ...materialParaSalvar } = novoMaterial;
+      if (precisaBalcao) materialParaSalvar.categoria = `${novoMaterial.categoria} - ${balcao}`;
+
       if (isEditing) {
-        const { error } = await supabase.from('materiais').update(novoMaterial).eq('id', idEmEdicao);
+        const { error } = await supabase.from('materiais').update(materialParaSalvar).eq('id', idEmEdicao);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('materiais').insert([{ ...novoMaterial, user_id: user.id }]);
+        const { error } = await supabase.from('materiais').insert([{ ...materialParaSalvar, user_id: user.id }]);
         if (error) throw error;
       }
       fetchMateriais(); setIsModalOpen(false); setIsEditing(false); setIdEmEdicao(null);
-      setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false });
+      setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: '' });
     } catch (error) {
       alert("Erro ao salvar: " + error.message);
     } finally { setLoadingForm(false); }
@@ -83,18 +101,22 @@ export default function AbaMateriais() {
   const filtrados = materiais.filter(m => {
     const matchBusca = m.nome.toLowerCase().includes(busca.toLowerCase());
     let matchAba = false;
-    if (abaAtiva === 'Todas') { matchAba = true; if (subAba !== 'Todas') matchAba = m.categoria?.includes(subAba); }
+    if (abaAtiva === 'Todas') matchAba = true;
     else if (abaAtiva === 'Materiais para Hands-On') matchAba = m.categoria === 'Materiais para Hands-On';
     else if (abaAtiva === 'Materiais Oraltech') { matchAba = m.categoria?.includes('Oraltech'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
-    else if (abaAtiva === 'Materiais Biodinâmica') { matchAba = m.categoria?.includes('Biodinâmica'); if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba); }
+    else if (abaAtiva === 'Materiais Biodinâmica') {
+      matchAba = m.categoria?.includes('Biodinâmica');
+      if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba);
+      if (subAba === 'Vitrine e Demonstração' && balcaoAtivo !== 'Todos') matchAba = matchAba && m.categoria?.includes(balcaoAtivo);
+    }
     return matchBusca && matchAba;
   });
 
   const subAbasPorAba = {
     'Materiais Oraltech': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
-    'Materiais Biodinâmica': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares', 'Balcão 1', 'Balcão 2', 'Balcão 3'],
-    'Todas': ['Todas', 'Balcão 1', 'Balcão 2', 'Balcão 3'],
+    'Materiais Biodinâmica': ['Todas', 'Vitrine e Demonstração', 'Materiais Auxiliares'],
   };
+  const balcoesDisponiveis = ['Todos', 'Balcão 1', 'Balcão 2', 'Balcão 3'];
 
   // FUNÇÃO DE EXPORTAR PARA WORD (COM ESTILO PREMIUM)
   const exportarParaWord = () => {
@@ -117,7 +139,7 @@ export default function AbaMateriais() {
       </head>
       <body>
         <h1>Controle de Insumos - Materiais</h1>
-        <p class="subtitle">Categoria: ${abaAtiva === 'Todas' ? 'Visão Geral (Todos os itens)' : abaAtiva} ${subAba !== 'Todas' ? `> ${subAba}` : ''}</p>
+        <p class="subtitle">Categoria: ${abaAtiva === 'Todas' ? 'Visão Geral (Todos os itens)' : abaAtiva} ${subAba !== 'Todas' ? `> ${subAba}` : ''} ${subAba === 'Vitrine e Demonstração' && balcaoAtivo !== 'Todos' ? `> ${balcaoAtivo}` : ''}</p>
         
         <table>
           <thead>
@@ -178,7 +200,7 @@ export default function AbaMateriais() {
             <button onClick={exportarParaWord} className="flex-1 md:flex-none bg-gray-200 dark:bg-white/5 hover:bg-gray-300 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 px-4 md:px-6 py-3 rounded-xl flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
               <Download className="w-4 h-4" /> <span className="hidden sm:inline">Word</span>
             </button>
-            <button onClick={() => { setIsEditing(false); setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
+            <button onClick={() => { setIsEditing(false); setNovoMaterial({ nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: '' }); setIsModalOpen(true); }} className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 text-black px-4 md:px-6 py-3 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.2)] flex justify-center items-center gap-2 font-black uppercase text-[10px] md:text-xs tracking-widest whitespace-nowrap transition">
               <Plus className="w-4 h-4" /> Adicionar
             </button>
           </div>
@@ -194,7 +216,17 @@ export default function AbaMateriais() {
           {subAbasPorAba[abaAtiva] && (
             <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: -10 }} className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide w-full">
               {subAbasPorAba[abaAtiva].map(sub => (
-                <button key={sub} onClick={() => setSubAba(sub)} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? (abaAtiva === 'Todas' ? 'Todas' : `Todas de ${abaAtiva.replace('Materiais ', '')}`) : sub}</button>
+                <button key={sub} onClick={() => { setSubAba(sub); setBalcaoAtivo('Todos'); }} className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 ${subAba === sub ? 'bg-gray-800 dark:bg-emerald-500/20 text-white dark:text-emerald-400 border border-gray-800 dark:border-emerald-500/30' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white border border-gray-200 dark:border-white/5'}`}>{sub === 'Todas' ? (abaAtiva === 'Todas' ? 'Todas' : `Todas de ${abaAtiva.replace('Materiais ', '')}`) : sub}</button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {abaAtiva === 'Materiais Biodinâmica' && subAba === 'Vitrine e Demonstração' && (
+            <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: -10 }} className="flex gap-2 mb-6 -mt-4 overflow-x-auto pb-2 scrollbar-hide w-full">
+              {balcoesDisponiveis.map(balcao => (
+                <button key={balcao} onClick={() => setBalcaoAtivo(balcao)} className={`px-3 py-1 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 border ${balcaoAtivo === balcao ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border-emerald-600/40' : 'bg-transparent text-gray-400 hover:text-gray-900 dark:hover:text-white border-gray-200 dark:border-white/5'}`}>{balcao}</button>
               ))}
             </motion.div>
           )}
@@ -249,7 +281,7 @@ export default function AbaMateriais() {
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Classificação / Categoria</label>
-                    <select required className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase cursor-pointer" value={novoMaterial.categoria} onChange={(e) => setNovoMaterial({...novoMaterial, categoria: e.target.value})}>
+                    <select required className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase cursor-pointer" value={novoMaterial.categoria} onChange={(e) => setNovoMaterial({...novoMaterial, categoria: e.target.value, balcao: ''})}>
                       <option value="Materiais para Hands-On" className="bg-white dark:bg-[#111]">Materiais para Hands-On</option>
                       <optgroup label="MARCA: ORALTECH" className="bg-gray-200 dark:bg-[#222] font-black text-emerald-700 dark:text-emerald-500">
                         <option value="Materiais Oraltech - Vitrine" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine (Oraltech)</option>
@@ -257,15 +289,22 @@ export default function AbaMateriais() {
                         <option value="Materiais Oraltech - Materiais Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Oraltech)</option>
                       </optgroup>
                       <optgroup label="MARCA: BIODINÂMICA" className="bg-gray-200 dark:bg-[#222] font-black text-emerald-700 dark:text-emerald-500">
-                        <option value="Materiais Biodinâmica - Vitrine" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine (Biodinâmica)</option>
-                        <option value="Materiais Biodinâmica - Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Demonstração (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Vitrine e Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine e Demonstração (Biodinâmica)</option>
                         <option value="Materiais Biodinâmica - Materiais Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Biodinâmica)</option>
-                        <option value="Materiais Biodinâmica - Balcão 1" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 1 (Biodinâmica)</option>
-                        <option value="Materiais Biodinâmica - Balcão 2" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 2 (Biodinâmica)</option>
-                        <option value="Materiais Biodinâmica - Balcão 3" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Balcão 3 (Biodinâmica)</option>
                       </optgroup>
                     </select>
                   </div>
+                  {precisaBalcao && (
+                    <div>
+                      <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Balcão</label>
+                      <select required className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase cursor-pointer" value={novoMaterial.balcao} onChange={(e) => setNovoMaterial({...novoMaterial, balcao: e.target.value})}>
+                        <option value="" disabled className="bg-white dark:bg-[#111]">Selecione o balcão</option>
+                        <option value="Balcão 1" className="bg-white dark:bg-[#111]">Balcão 1</option>
+                        <option value="Balcão 2" className="bg-white dark:bg-[#111]">Balcão 2</option>
+                        <option value="Balcão 3" className="bg-white dark:bg-[#111]">Balcão 3</option>
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-2">Quantidade Mínima</label>
                     <input type="number" min="1" required className="w-full p-3 md:p-4 bg-gray-50 dark:bg-black/50 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white outline-none text-xs uppercase" value={novoMaterial.quantidade} onChange={(e) => setNovoMaterial({...novoMaterial, quantidade: parseInt(e.target.value) || 1})} />
