@@ -183,6 +183,9 @@ export default function AbaAgenda() {
     const matchTema = filtroTema === 'Todos' || (r.tema && r.tema.trim().toUpperCase() === filtroTema);
     const matchAno = r.data && r.data.startsWith(anoAtivo);
     return matchBusca && matchData && matchTipo && matchTema && matchAno;
+  }).sort((a, b) => {
+    if (abaAtiva !== 'Todas') return 0;
+    return a.professor.localeCompare(b.professor, 'pt-BR', { sensitivity: 'base' });
   });
 
   const registrosDoAno = registros.filter(r => r.data && r.data.startsWith(anoAtivo));
