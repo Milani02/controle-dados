@@ -20,6 +20,10 @@ export default function AbaMateriais() {
     nome: '', categoria: 'Materiais para Hands-On', quantidade: 1, verificado: false, balcao: ''
   });
 
+  const REGEX_BALCAO = / - (Balcão \d)$/;
+  const getBalcao = (categoria) => categoria?.match(REGEX_BALCAO)?.[1] || '-';
+  const formatCategoria = (categoria) => categoria?.replace(REGEX_BALCAO, '') || categoria;
+
   useEffect(() => { fetchMateriais(); }, []);
 
   const fetchMateriais = async () => {
@@ -29,14 +33,9 @@ export default function AbaMateriais() {
 
   const abrirEdicao = (item) => {
     setIsEditing(true); setIdEmEdicao(item.id);
-    const base = 'Materiais Biodinâmica - Vitrine e Demonstração';
-    let categoria = item.categoria;
-    let balcao = '';
-    if (categoria?.startsWith(`${base} - `)) {
-      balcao = categoria.replace(`${base} - `, '');
-      categoria = base;
-    }
-    setNovoMaterial({ nome: item.nome, categoria, quantidade: item.quantidade, verificado: item.verificado || false, balcao });
+    const categoria = formatCategoria(item.categoria);
+    const balcaoExtraido = getBalcao(item.categoria);
+    setNovoMaterial({ nome: item.nome, categoria, quantidade: item.quantidade, verificado: item.verificado || false, balcao: balcaoExtraido === '-' ? '' : balcaoExtraido });
     setIsModalOpen(true);
   };
 
@@ -69,7 +68,7 @@ export default function AbaMateriais() {
     }
   };
 
-  const precisaBalcao = novoMaterial.categoria === 'Materiais Biodinâmica - Vitrine e Demonstração';
+  const precisaBalcao = novoMaterial.categoria === 'Materiais Biodinâmica - Vitrine' || novoMaterial.categoria === 'Materiais Biodinâmica - Demonstração';
 
   const handleSalvarMaterial = async (e) => {
     e.preventDefault(); setLoadingForm(true);
@@ -107,20 +106,16 @@ export default function AbaMateriais() {
     else if (abaAtiva === 'Materiais Biodinâmica') {
       matchAba = m.categoria?.includes('Biodinâmica');
       if (subAba !== 'Todas') matchAba = matchAba && m.categoria?.includes(subAba);
-      if (subAba === 'Vitrine e Demonstração' && balcaoAtivo !== 'Todos') matchAba = matchAba && m.categoria?.includes(balcaoAtivo);
+      if ((subAba === 'Vitrine' || subAba === 'Demonstração') && balcaoAtivo !== 'Todos') matchAba = matchAba && m.categoria?.includes(balcaoAtivo);
     }
     return matchBusca && matchAba;
   });
 
   const subAbasPorAba = {
     'Materiais Oraltech': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
-    'Materiais Biodinâmica': ['Todas', 'Vitrine e Demonstração', 'Materiais Auxiliares'],
+    'Materiais Biodinâmica': ['Todas', 'Vitrine', 'Demonstração', 'Materiais Auxiliares'],
   };
   const balcoesDisponiveis = ['Todos', 'Balcão 1', 'Balcão 2', 'Balcão 3'];
-
-  const REGEX_BALCAO = / - (Balcão \d)$/;
-  const getBalcao = (categoria) => categoria?.match(REGEX_BALCAO)?.[1] || '-';
-  const formatCategoria = (categoria) => categoria?.replace(REGEX_BALCAO, '') || categoria;
 
   // FUNÇÃO DE EXPORTAR PARA WORD (COM ESTILO PREMIUM)
   const exportarParaWord = () => {
@@ -143,7 +138,7 @@ export default function AbaMateriais() {
       </head>
       <body>
         <h1>Controle de Insumos - Materiais</h1>
-        <p class="subtitle">Categoria: ${abaAtiva === 'Todas' ? 'Visão Geral (Todos os itens)' : abaAtiva} ${subAba !== 'Todas' ? `> ${subAba}` : ''} ${subAba === 'Vitrine e Demonstração' && balcaoAtivo !== 'Todos' ? `> ${balcaoAtivo}` : ''}</p>
+        <p class="subtitle">Categoria: ${abaAtiva === 'Todas' ? 'Visão Geral (Todos os itens)' : abaAtiva} ${subAba !== 'Todas' ? `> ${subAba}` : ''} ${(subAba === 'Vitrine' || subAba === 'Demonstração') && balcaoAtivo !== 'Todos' ? `> ${balcaoAtivo}` : ''}</p>
         
         <table>
           <thead>
@@ -229,7 +224,7 @@ export default function AbaMateriais() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {abaAtiva === 'Materiais Biodinâmica' && subAba === 'Vitrine e Demonstração' && (
+          {abaAtiva === 'Materiais Biodinâmica' && (subAba === 'Vitrine' || subAba === 'Demonstração') && (
             <motion.div initial={{ opacity: 0, height: 0, y: -10 }} animate={{ opacity: 1, height: 'auto', y: 0 }} exit={{ opacity: 0, height: 0, y: -10 }} className="flex gap-2 mb-6 -mt-4 overflow-x-auto pb-2 scrollbar-hide w-full">
               {balcoesDisponiveis.map(balcao => (
                 <button key={balcao} onClick={() => setBalcaoAtivo(balcao)} className={`px-3 py-1 rounded-lg font-bold uppercase text-[9px] md:text-[10px] tracking-wider transition-all whitespace-nowrap flex-shrink-0 border ${balcaoAtivo === balcao ? 'bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border-emerald-600/40' : 'bg-transparent text-gray-400 hover:text-gray-900 dark:hover:text-white border-gray-200 dark:border-white/5'}`}>{balcao}</button>
@@ -296,7 +291,8 @@ export default function AbaMateriais() {
                         <option value="Materiais Oraltech - Materiais Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Oraltech)</option>
                       </optgroup>
                       <optgroup label="MARCA: BIODINÂMICA" className="bg-gray-200 dark:bg-[#222] font-black text-emerald-700 dark:text-emerald-500">
-                        <option value="Materiais Biodinâmica - Vitrine e Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine e Demonstração (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Vitrine" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Vitrine (Biodinâmica)</option>
+                        <option value="Materiais Biodinâmica - Demonstração" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Demonstração (Biodinâmica)</option>
                         <option value="Materiais Biodinâmica - Materiais Auxiliares" className="bg-white dark:bg-[#111] font-normal text-gray-900 dark:text-gray-300">Auxiliares (Biodinâmica)</option>
                       </optgroup>
                     </select>
