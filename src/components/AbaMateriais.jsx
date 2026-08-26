@@ -118,6 +118,10 @@ export default function AbaMateriais() {
   };
   const balcoesDisponiveis = ['Todos', 'Balcão 1', 'Balcão 2', 'Balcão 3'];
 
+  const REGEX_BALCAO = / - (Balcão \d)$/;
+  const getBalcao = (categoria) => categoria?.match(REGEX_BALCAO)?.[1] || '-';
+  const formatCategoria = (categoria) => categoria?.replace(REGEX_BALCAO, '') || categoria;
+
   // FUNÇÃO DE EXPORTAR PARA WORD (COM ESTILO PREMIUM)
   const exportarParaWord = () => {
     const dataAtual = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -144,9 +148,10 @@ export default function AbaMateriais() {
         <table>
           <thead>
             <tr>
-              <th style="width: 15%; text-align: center;">STATUS</th>
-              <th style="width: 40%;">ITEM / INSUMO</th>
-              <th style="width: 30%;">CLASSIFICAÇÃO</th>
+              <th style="width: 12%; text-align: center;">STATUS</th>
+              <th style="width: 35%;">ITEM / INSUMO</th>
+              <th style="width: 25%;">CLASSIFICAÇÃO</th>
+              <th style="width: 13%; text-align: center;">BALCÃO</th>
               <th style="width: 15%; text-align: center;">QUANTIDADE</th>
             </tr>
           </thead>
@@ -154,15 +159,16 @@ export default function AbaMateriais() {
             ${filtrados.map((item, index) => {
               // Alternância de cores (Zebra) feita por script para o Word reconhecer perfeitamente
               const bgColor = index % 2 === 0 ? '#ffffff' : '#f9fafb';
-              const statusHtml = item.verificado 
-                ? '<span style="color: #059669; font-weight: bold;">✔ OK</span>' 
+              const statusHtml = item.verificado
+                ? '<span style="color: #059669; font-weight: bold;">✔ OK</span>'
                 : '<span style="color: #d97706; font-weight: bold;">☐ PENDENTE</span>';
-              
+
               return `
                 <tr style="background-color: ${bgColor};">
                   <td style="text-align: center;">${statusHtml}</td>
                   <td style="color: ${item.verificado ? '#9ca3af' : '#111827'}; font-weight: bold;">${item.nome}</td>
-                  <td style="color: #4b5563;">${item.categoria}</td>
+                  <td style="color: #4b5563;">${formatCategoria(item.categoria)}</td>
+                  <td style="text-align: center; color: #047857; font-weight: bold;">${getBalcao(item.categoria)}</td>
                   <td style="text-align: center; font-weight: bold; color: #111827;">${item.quantidade} UN</td>
                 </tr>
               `;
@@ -244,7 +250,7 @@ export default function AbaMateriais() {
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-200 dark:border-white/5 text-[10px] text-emerald-600 dark:text-emerald-500 uppercase tracking-[0.2em] font-black">
-                  <th className="p-4 md:p-5 w-12 text-center">St</th><th className="p-4 md:p-5">Item / Insumo</th><th className="p-4 md:p-5">Classificação</th><th className="p-4 md:p-5 w-32 text-center">Qtd</th><th className="p-4 md:p-5 text-right w-32">Ações</th>
+                  <th className="p-4 md:p-5 w-12 text-center">St</th><th className="p-4 md:p-5">Item / Insumo</th><th className="p-4 md:p-5">Classificação</th><th className="p-4 md:p-5 w-28 text-center">Balcão</th><th className="p-4 md:p-5 w-32 text-center">Qtd</th><th className="p-4 md:p-5 text-right w-32">Ações</th>
                 </tr>
               </thead>
               <tbody className="text-sm font-mono uppercase tracking-tighter">
@@ -252,11 +258,12 @@ export default function AbaMateriais() {
                   <motion.tr initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={item.id} className="bg-white dark:bg-[#1a1a1a] border-b border-gray-100 dark:border-[#222] hover:bg-gray-50 dark:hover:bg-[#222] transition-colors group">
                     <td className="p-4 md:p-5 text-center"><button onClick={() => alternarVerificacao(item.id, item.verificado)} className="text-gray-400 hover:text-emerald-500 transition-colors">{item.verificado ? <CheckSquare className="w-5 h-5 text-emerald-500" /> : <Square className="w-5 h-5 text-gray-400 dark:text-gray-600" />}</button></td>
                     <td className={`p-4 md:p-5 font-bold ${item.verificado ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-white'}`}>{item.nome}</td>
-                    <td className="p-4 md:p-5 text-gray-600 dark:text-gray-400 text-[10px] md:text-xs leading-tight">{item.categoria}</td>
+                    <td className="p-4 md:p-5 text-gray-600 dark:text-gray-400 text-[10px] md:text-xs leading-tight">{formatCategoria(item.categoria)}</td>
+                    <td className="p-4 md:p-5 text-center">{getBalcao(item.categoria) === '-' ? <span className="text-gray-300 dark:text-gray-700">-</span> : <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-lg whitespace-nowrap text-[10px] font-bold">{getBalcao(item.categoria)}</span>}</td>
                     <td className="p-4 md:p-5 text-center font-black text-gray-900 dark:text-white"><span className="px-3 py-1 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg whitespace-nowrap">{item.quantidade} UN</span></td>
                     <td className="p-4 md:p-5 text-right flex justify-end items-center gap-2"><button onClick={() => abrirEdicao(item)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white p-2" title="Editar"><Pencil className="w-4 h-4" /></button><button onClick={() => abrirModalExclusao(item.id)} className="text-gray-400 hover:text-red-500 p-2" title="Excluir"><Trash2 className="w-4 h-4" /></button></td>
                   </motion.tr>
-                )) : <tr><td colSpan="5" className="p-8 text-center text-gray-400 dark:text-gray-600 font-mono text-xs uppercase">Nenhum insumo localizado.</td></tr>}
+                )) : <tr><td colSpan="6" className="p-8 text-center text-gray-400 dark:text-gray-600 font-mono text-xs uppercase">Nenhum insumo localizado.</td></tr>}
               </tbody>
             </table>
           </div>
